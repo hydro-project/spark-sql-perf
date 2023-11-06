@@ -27,6 +27,7 @@ import org.apache.spark.sql.SQLContext
 class DBGEN(dbgenDir: String, params: Seq[String]) extends DataGenerator {
   val dbgen = s"$dbgenDir/dbgen"
   def generate(sparkContext: SparkContext,name: String, partitions: Int, scaleFactor: String) = {
+    println(s"Generating data for $name, partitions=$partitions, scaleFactor=$scaleFactor, with params=$params")
     val smallTables = Seq("nation", "region")
     val numPartitions = if (partitions > 1 && !smallTables.contains(name)) partitions else 1
     val generatedData = {
@@ -39,6 +40,7 @@ class DBGEN(dbgenDir: String, params: Seq[String]) extends DataGenerator {
           sys.error(s"Could not find dbgen at $dbgen or /$dbgenDir. Run install")
         }
         val parallel = if (numPartitions > 1) s"-C $partitions -S $i" else ""
+        val tbl_file_name = if (numPartitions > 1) s"$name.tbl.$i" else s"$name.tbl"
         val shortTableNames = Map(
           "customer" -> "c",
           "lineitem" -> "L",
@@ -52,7 +54,7 @@ class DBGEN(dbgenDir: String, params: Seq[String]) extends DataGenerator {
         val paramsString = params.mkString(" ")
         val commands = Seq(
           "bash", "-c",
-          s"cd $localToolsDir && ./dbgen -q $paramsString -T ${shortTableNames(name)} -s $scaleFactor $parallel")
+          s"cd $localToolsDir && touch $tbl_file_name && rm $tbl_file_name && mkfifo $tbl_file_name && (./dbgen -f -q $paramsString -T ${shortTableNames(name)} -s $scaleFactor $parallel & cat $tbl_file_name) && wait && rm $tbl_file_name")
         println(commands)
         BlockingLineStream(commands)
       }.repartition(numPartitions)

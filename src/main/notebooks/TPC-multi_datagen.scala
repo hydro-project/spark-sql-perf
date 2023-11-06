@@ -1,21 +1,24 @@
 // Databricks notebook source
 // Multi TPC- H and DS generator and database importer using spark-sql-perf, typically to generate parquet files in S3/blobstore objects
-val benchmarks = Seq("TPCDS", "TPCH") // Options: TCPDS", "TPCH"
-val scaleFactors = Seq("1", "10", "100", "1000", "10000") // "1", "10", "100", "1000", "10000" list of scale factors to generate and import
+//val benchmarks = Seq("TPCDS", "TPCH") // Options: TCPDS", "TPCH"
+val benchmarks = Seq("TPCH") // Options: TCPDS", "TPCH"
+//val scaleFactors = Seq("1", "10", "100", "1000", "10000") // "1", "10", "100", "1000", "10000" list of scale factors to generate and import
+val scaleFactors = Seq("1") // "1", "10", "100", "1000", "10000" list of scale factors to generate and import
 
-val baseLocation = s"s3a://mybucket" // S3 bucket, blob, or local root path
-val baseDatagenFolder = "/tmp"  // usually /tmp if enough space is available for datagen files
+//val baseLocation = s"s3a://mybucket" // S3 bucket, blob, or local root path
+val baseLocation = s"/opt/spark/apps/data"
+//val baseDatagenFolder = "/tmp"  // usually /tmp if enough space is available for datagen files
 
 // Output file formats
 val fileFormat = "parquet" // only parquet was tested
 val shuffle = true // If true, partitions will be coalesced into a single file during generation up to spark.sql.files.maxRecordsPerFile (if set)
-val overwrite = false //if to delete existing files (doesn't check if results are complete on no-overwrite)
+val overwrite = true //if to delete existing files (doesn't check if results are complete on no-overwrite)
 
 // Generate stats for CBO
 val createTableStats = true
 val createColumnStats = true
 
-val workers: Int = spark.conf.get("spark.databricks.clusterUsageTags.clusterTargetWorkers").toInt //number of nodes, assumes one executor per node
+val workers: Int = 4 //spark.conf.get("spark.databricks.clusterUsageTags.clusterTargetWorkers").toInt //number of nodes, assumes one executor per node
 val cores: Int = Runtime.getRuntime.availableProcessors.toInt //number of CPU-cores
 
 val dbSuffix = "" // set only if creating multiple DBs or source file folders with different settings, use a leading _
@@ -35,7 +38,7 @@ import com.databricks.spark.sql.perf.tpch._
 import com.databricks.spark.sql.perf.tpcds._
 
 // Spark/Hadoop config
-import org.apache.spark.deploy.SparkHadoopUtil
+//import org.apache.spark.deploy.SparkHadoopUtil
 
 // COMMAND ----------
 
@@ -54,7 +57,7 @@ val targetWorkers: Int = workers
 def numWorkers: Int = sc.getExecutorMemoryStatus.size - 1
 def waitForWorkers(requiredWorkers: Int, tries: Int) : Unit = {
   for (i <- 0 to (tries-1)) {
-    if (numWorkers == requiredWorkers) {
+    if (numWorkers >= requiredWorkers) {
       println(s"Waited ${i}s. for $numWorkers workers to be ready")
       return
     }
@@ -132,10 +135,10 @@ echo "OK"
 // COMMAND ----------
 
 // install (build) the data generators in all nodes
-val res = spark.range(0, workers, 1, workers).map(worker => benchmarks.map{
+/* val res = spark.range(0, workers, 1, workers).map(worker => benchmarks.map{
     case "TPCDS" => s"TPCDS worker $worker\n" + installDSDGEN(baseFolder = baseDatagenFolder)(worker)
     case "TPCH" => s"TPCH worker $worker\n" + installDBGEN(baseFolder = baseDatagenFolder)(worker)
-  }).collect()
+  }).collect() */
 
 // COMMAND ----------
 
@@ -145,17 +148,17 @@ def getBenchmarkData(benchmark: String, scaleFactor: String) = benchmark match {
   
   case "TPCH" => (
     s"tpch_sf${scaleFactor}_${fileFormat}${dbSuffix}",
-    new TPCHTables(spark.sqlContext, dbgenDir = s"${baseDatagenFolder}/dbgen", scaleFactor = scaleFactor, useDoubleForDecimal = false, useStringForDate = false, generatorParams = Nil),
+    new TPCHTables(spark.sqlContext, dbgenDir = s"/opt/spark/tpch-dbgen", scaleFactor = scaleFactor, useDoubleForDecimal = false, useStringForDate = false, generatorParams = Nil),
     s"$baseLocation/tpch/sf${scaleFactor}_${fileFormat}")  
   
   case "TPCDS" if !TPCDSUseLegacyOptions => (
     s"tpcds_sf${scaleFactor}_${fileFormat}${dbSuffix}",
-    new TPCDSTables(spark.sqlContext, dsdgenDir = s"${baseDatagenFolder}/dsdgen", scaleFactor = scaleFactor, useDoubleForDecimal = false, useStringForDate = false),
+    new TPCDSTables(spark.sqlContext, dsdgenDir = s"/opt/spark/tpcds-kit/tools", scaleFactor = scaleFactor, useDoubleForDecimal = false, useStringForDate = false),
     s"$baseLocation/tpcds-2.4/sf${scaleFactor}_${fileFormat}")
   
   case "TPCDS" if TPCDSUseLegacyOptions => (
     s"tpcds_sf${scaleFactor}_nodecimal_nodate_withnulls${dbSuffix}",
-    new TPCDSTables(spark.sqlContext, s"${baseDatagenFolder}/dsdgen", scaleFactor = scaleFactor, useDoubleForDecimal = true, useStringForDate = true),
+    new TPCDSTables(spark.sqlContext, s"/opt/spark/tpcds-kit/tools", scaleFactor = scaleFactor, useDoubleForDecimal = true, useStringForDate = true),
     s"$baseLocation/tpcds/sf$scaleFactor-$fileFormat/useDecimal=false,useDate=false,filterNull=false")
 }
 
@@ -217,15 +220,15 @@ def setScaleConfig(scaleFactor: String): Unit = {
   // About 24hrs. for SF 1 to 10,000.
   if (scaleFactor.toInt >= 10000) {    
     spark.conf.set("spark.sql.shuffle.partitions", "20000")
-    SparkHadoopUtil.get.conf.set("parquet.memory.pool.ratio", "0.1")
+    //SparkHadoopUtil.get.conf.set("parquet.memory.pool.ratio", "0.1")
   } 
   else if (scaleFactor.toInt >= 1000) {
     spark.conf.set("spark.sql.shuffle.partitions", "2001") //one above 2000 to use HighlyCompressedMapStatus
-    SparkHadoopUtil.get.conf.set("parquet.memory.pool.ratio", "0.3")    
+    //SparkHadoopUtil.get.conf.set("parquet.memory.pool.ratio", "0.3")    
   }
   else { 
     spark.conf.set("spark.sql.shuffle.partitions", "200") //default
-    SparkHadoopUtil.get.conf.set("parquet.memory.pool.ratio", "0.5")
+    //SparkHadoopUtil.get.conf.set("parquet.memory.pool.ratio", "0.5")
   }
 }
 

@@ -4,11 +4,14 @@
 
 val scaleFactors = Seq(1, 10, 100, 1000) //set scale factors to run
 val format = "parquet" //format has have already been generated
+val baseLocation = s"/opt/spark/apps/data"
 
 def perfDatasetsLocation(scaleFactor: Int, format: String) = 
-  s"s3a://my-bucket/tpch/sf${scaleFactor}_${format}"
+  s"${baseLocation}/tpch/sf${scaleFactor}_${format}"
+  //s"s3a://my-bucket/tpch/sf${scaleFactor}_${format}"
 
-val resultLocation = "s3a://my-bucket/results"
+//val resultLocation = "s3a://my-bucket/results"
+val resultLocation = s"${baseLocation}/results"
 val iterations = 2
 def databaseName(scaleFactor: Int, format: String) = s"tpch_sf${scaleFactor}_${format}"
 val randomizeQueries = false //to use on concurrency tests

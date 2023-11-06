@@ -1,4 +1,4 @@
-package com.databricks.spark.sql.perf.mllib
+/* package com.databricks.spark.sql.perf.mllib
 
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
@@ -63,4 +63,4 @@ class MLLibSuite extends FunSuite with BeforeAndAfterAll {
       b.beforeBenchmark()
     }
   }
-}
+} */

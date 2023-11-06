@@ -117,6 +117,8 @@ abstract class Tables(sqlContext: SQLContext, scaleFactor: String,
      *  converted to `schema`. Otherwise, it just outputs the raw data (as a single STRING column).
      */
     def df(convertToSchema: Boolean, numPartition: Int) = {
+      println(s"Generating table $name with scaleFactor $scaleFactor.")
+      log.info(s"Generating table $name with scaleFactor $scaleFactor.")
       val generatedData = dataGenerator.generate(sparkContext, name, numPartition, scaleFactor)
       val rows = generatedData.mapPartitions { iter =>
         iter.map { l =>

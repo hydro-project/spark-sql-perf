@@ -9,17 +9,20 @@ scalaVersion := "2.12.10"
 
 crossScalaVersions := Seq("2.12.10")
 
-sparkPackageName := "databricks/spark-sql-perf"
+//sparkPackageName := "databricks/spark-sql-perf"
 
 // All Spark Packages need a license
 licenses := Seq("Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0"))
 
-sparkVersion := "3.0.0"
+//sparkVersion := "3.0.0"
 
-sparkComponents ++= Seq("sql", "hive", "mllib")
+libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.0"
+libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.3.0"
+
+//sparkComponents ++= Seq("sql", "hive", "mllib")
 
 
-initialCommands in console :=
+console / initialCommands :=
   """
     |import org.apache.spark.sql._
     |import org.apache.spark.sql.functions._
@@ -43,27 +46,27 @@ libraryDependencies += "org.yaml" % "snakeyaml" % "1.23"
 fork := true
 
 // Your username to login to Databricks Cloud
-dbcUsername := sys.env.getOrElse("DBC_USERNAME", "")
+//dbcUsername := sys.env.getOrElse("DBC_USERNAME", "")
 
 // Your password (Can be set as an environment variable)
-dbcPassword := sys.env.getOrElse("DBC_PASSWORD", "")
+//dbcPassword := sys.env.getOrElse("DBC_PASSWORD", "")
 
 // The URL to the Databricks Cloud DB Api. Don't forget to set the port number to 34563!
-dbcApiUrl := sys.env.getOrElse ("DBC_URL", sys.error("Please set DBC_URL"))
+//dbcApiUrl := sys.env.getOrElse ("DBC_URL", sys.error("Please set DBC_URL"))
 
 // Add any clusters that you would like to deploy your work to. e.g. "My Cluster"
 // or run dbcExecuteCommand
-dbcClusters += sys.env.getOrElse("DBC_USERNAME", "")
+//dbcClusters += sys.env.getOrElse("DBC_USERNAME", "")
 
-dbcLibraryPath := s"/Users/${sys.env.getOrElse("DBC_USERNAME", "")}/lib"
+//dbcLibraryPath := s"/Users/${sys.env.getOrElse("DBC_USERNAME", "")}/lib"
 
 val runBenchmark = inputKey[Unit]("runs a benchmark")
 
 runBenchmark := {
   import complete.DefaultParsers._
   val args = spaceDelimited("[args]").parsed
-  val scalaRun = (runner in run).value
-  val classpath = (fullClasspath in Compile).value
+  val scalaRun = (run / runner).value
+  val classpath = (Compile / fullClasspath).value
   scalaRun.run("com.databricks.spark.sql.perf.RunBenchmark", classpath.map(_.data), args,
     streams.value.log)
 }
@@ -81,10 +84,10 @@ runMLBenchmark := {
 }
 
 
-import ReleaseTransformations._
+//import ReleaseTransformations._
 
 /** Push to the team directory instead of the user's homedir for releases. */
-lazy val setupDbcRelease = ReleaseStep(
+/* lazy val setupDbcRelease = ReleaseStep(
   action = { st: State =>
     val extracted = Project.extract(st)
     val newSettings = extracted.structure.allProjectRefs.map { ref =>
@@ -93,7 +96,7 @@ lazy val setupDbcRelease = ReleaseStep(
 
     reapply(newSettings, st)
   }
-)
+) */
 
 /********************
  * Release settings *
@@ -101,11 +104,11 @@ lazy val setupDbcRelease = ReleaseStep(
 
 publishMavenStyle := true
 
-releaseCrossBuild := true
+//releaseCrossBuild := true
 
 licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
 
-releasePublishArtifactsAction := PgpKeys.publishSigned.value
+//releasePublishArtifactsAction := PgpKeys.publishSigned.value
 
 pomExtra := (
       <url>https://github.com/databricks/spark-sql-perf</url>
@@ -142,10 +145,10 @@ pomExtra := (
       </developers>
     )
 
-bintrayReleaseOnPublish in ThisBuild := false
+//bintrayReleaseOnPublish in ThisBuild := false
 
 // Add publishing to spark packages as another step.
-releaseProcess := Seq[ReleaseStep](
+/* releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runTest,
@@ -158,4 +161,4 @@ releaseProcess := Seq[ReleaseStep](
   setNextVersion,
   commitNextVersion,
   pushChanges
-)
+) */

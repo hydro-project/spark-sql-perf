@@ -172,14 +172,14 @@ process_args () {
 }
 
 run() {
-  # first check SBT_HOME is present so we use what's already available
-  sbt_jar=$SBT_HOME
-  # if there's no jar let's download it.
-  [[ -f "$sbt_jar" ]] || acquire_sbt_jar "$sbt_version" || {
-    # still no jar? uh-oh.
-    echo "Download failed. Obtain the sbt-launch.jar manually and place it at $sbt_jar"
-    exit 1
-  }
+  ## first check SBT_HOME is present so we use what's already available
+  #sbt_jar=$SBT_HOME
+  ## if there's no jar let's download it.
+  #[[ -f "$sbt_jar" ]] || acquire_sbt_jar "$sbt_version" || {
+  #  # still no jar? uh-oh.
+  #  echo "Download failed. Obtain the sbt-launch.jar manually and place it at $sbt_jar"
+  #  exit 1
+  #}
 
   # process the combined args, then reset "$@" to the residuals
   process_args "$@"
@@ -187,12 +187,19 @@ run() {
   argumentCount=$#
 
   # run sbt
-  execRunner "$java_cmd" \
-    ${SBT_OPTS:-$default_sbt_opts} \
-    $(get_mem_opts $sbt_mem) \
-    ${java_opts} \
-    ${java_args[@]} \
-    -jar "$sbt_jar" \
+  #execRunner "$java_cmd" \
+  #  ${SBT_OPTS:-$default_sbt_opts} \
+  #  $(get_mem_opts $sbt_mem) \
+  #  ${java_opts} \
+  #  ${java_args[@]} \
+  #  -jar "$sbt_jar" \
+  #  "${sbt_commands[@]}" \
+  #  "${residual_args[@]}"
+  
+  # run sbt
+  execRunner sbt \
+    -v \
     "${sbt_commands[@]}" \
-    "${residual_args[@]}"
+    "${residual_args[@]}" \
+    -J--add-exports=java.base/sun.nio.ch=ALL-UNNAMED
 }
