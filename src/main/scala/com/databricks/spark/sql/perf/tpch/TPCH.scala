@@ -22,7 +22,8 @@ import com.databricks.spark.sql.perf.ExecutionMode.CollectResults
 import org.apache.commons.io.IOUtils
 
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.sql.functions._
 
 class DBGEN(dbgenDir: String, params: Seq[String]) extends DataGenerator {
   val dbgen = s"$dbgenDir/dbgen"
@@ -169,11 +170,23 @@ class TPCHTables(
 class TPCH(@transient sqlContext: SQLContext)
   extends Benchmark(sqlContext) {
 
+  def this() = this(SparkSession.builder.getOrCreate().sqlContext)
+
+  println("Loading queries")
+
   val queries = (1 to 22).map { q =>
     val queryContent: String = IOUtils.toString(
       getClass().getClassLoader().getResourceAsStream(s"tpch/queries/$q.sql"))
     Query(s"Q$q", queryContent, description = "TPCH Query",
       executionMode = CollectResults)
   }
+
+  println(s"Loaded ${queries.size} queries")
   val queriesMap = queries.map(q => q.name.split("-").get(0) -> q).toMap
+
+  def use_database(scaleFactor: String, format: String): Unit = {
+    val databaseName = s"tpch_sf${scaleFactor}_${format}"
+    println(s"Using database $databaseName")
+    sqlContext.sql(s"USE $databaseName")
+  }
 }

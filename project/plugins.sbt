@@ -19,3 +19,5 @@ resolvers += "bintray-spark-packages" at "https://dl.bintray.com/spark-packages/
 //addSbtPlugin("me.lessis" % "bintray-sbt" % "0.3.0")
 
 //addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.0.0")
+
+addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "1.1.0") // Use the latest version of sbt-assembly
